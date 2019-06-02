@@ -14,34 +14,26 @@ on the validation dataset. We'd like to do better.
 
 解决此问题的一种方法是 在标记模型的末尾添加CRF层。（如果你不熟悉CRF，[这个概述文章](https://arxiv.org/abs/1011.4088) 是有用的，就像[这个PyTorch教程一样](http://pytorch.org/tutorials/beginner/nlp/advanced_tutorial.html)。）
 
+我们使用的线性链CRF的转移损失是一个 `num_tags` x `num_tags` 大小的转移矩阵， `transitions[i, j]`代表 从第`i`个标签紧跟第`j`个标签的概率。且除了要预测词的标签外，还要预测出句首句尾。
 
-The "linear-chain" conditional random field we'll implement has a `num_tags` x `num_tags` matrix of transition costs,
-where `transitions[i, j]` represents the likelihood of transitioning
-from the `j`-th tag to the `i`-th tag.
-In addition to whatever tags we're trying to predict, we'll have special
-"start" and "end" tags that we'll stick before and after each sentence
-in order to capture the "transition" inherent in being the tag at the
-beginning or end of a sentence.
+再者，我们的CRF会接受一组可选的不合理转换作为约束条件。例如，我们的NER数据有不同的标记，分别表示开始、中间和结束实体类型的。我们不允许使用“个人实体的开始”标签后面是“位置结束实体标记”。
 
-In addition, our CRF will accept an optional set of _constraints_ that
-disallow "invalid" transitions (where "invalid" depends on what you're trying to model.)
-For example, our NER data has distinct tags that represent the beginning, middle, and end
-of each entity type. We'd like not to allow a "beginning of a person entity" tag
-to be followed by an "end of location entity tag".
-
-As the CRF is just a component of our model, we'll implement it as a [Module](https://allenai.github.io/allennlp-docs/api/allennlp.modules.html).
+CRF只是我们模型的一部分，我们会以模块的方式实现它。
 
 ## Implementing the CRF Module
 
-To implement a PyTorch module, we just need to inherit from [`torch.nn.Module`](http://pytorch.org/docs/master/nn.html#torch.nn.Module)
-and override
+为了实现一个CRF的PyTorch模型，我们需要继承`torch.nn.Module`类并复写：
 
 ```python
     def forward(self, *input):
         ...
 ```
 
-to compute the log-likelihood of the provided inputs.
+计算输入的对数概率。
+
+- 初始化模块`__init__()`
+
+为了初始化这个模块
 
 To initialize this module, we just need the number of tags and optionally some constraints
 (represented as a list of allowed pairs `(from_tag_index, to_tag_index)`):
@@ -142,7 +134,7 @@ we can get away with a similar configuration file. We need to make only
 a couple of changes:
 
 - change the `model.type` to `"crf_tagger"`
-- change the `"dataset_reader.type"` to `"conll2003"`
+- change the `"dataset_reader.type"` to `"conll2003"odule, we just n`
 - add a `"dataset_reader.tag_label"` field with value "ner" (to indicate that the NER labels are what we're predicting)
 
 We don't *need* to, but we also make a few other changes
