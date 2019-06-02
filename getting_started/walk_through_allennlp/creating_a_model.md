@@ -33,10 +33,7 @@ CRF只是我们模型的一部分，我们会以模块的方式实现它。
 
 - 初始化模块`__init__()`
 
-为了初始化这个模块
-
-To initialize this module, we just need the number of tags and optionally some constraints
-(represented as a list of allowed pairs `(from_tag_index, to_tag_index)`):
+为了初始化这个模块，我们只需要一些标签和可选的一些约束(表示为被允许tag索引对列表 `(from_tag_index, to_tag_index)`):
 
 ```python
     def __init__(self,
@@ -45,56 +42,42 @@ To initialize this module, we just need the number of tags and optionally some c
         super().__init__()
         self.num_tags = num_tags
 
-        # transitions[i, j] is the logit for transitioning from state i to state j.
+        # transitions[i, j]是从状态i到状态j的转移概率.
         self.transitions = torch.nn.Parameter(torch.Tensor(num_tags, num_tags))
 
-        # _constraint_mask indicates valid transitions (based on supplied constraints).
+        # _constraint_mask表示有效转换(基于提供的约束).
         if constraints is None:
             self._constraint_mask = None
         else:
             constraint_mask = torch.Tensor(num_tags, num_tags).fill_(0.)
             for i, j in constraints:
                 constraint_mask[i, j] = 1.
-
+		# torch.nn.Parameter可以暂时存储网络的参数且默认require_grad = False
             self._constraint_mask = torch.nn.Parameter(constraint_mask, requires_grad=False)
 
-        # Also need logits for transitioning from "start" state and to "end" state.
+        # 还需要计算从“开始”状态转换到“结束”状态的概率。
         self.start_transitions = torch.nn.Parameter(torch.Tensor(num_tags))
         self.end_transitions = torch.nn.Parameter(torch.Tensor(num_tags))
 ```
 
-I'm not going to get into the exact mechanics of how the log-likelihood is calculated;
-you should read the aforementioned overview paper
-(and look at our implementation)
-if you want the details. The key points are
+- 输入模块是一个 `(sequence_length, num_tags)`形状的概率张量表示预测到的每个标签在每个位置的概率。一个 `(sequence_length,)` 长度的概率张量。 (事实上，我们实际上提供
 
-- the input to this module is a `(sequence_length, num_tags)` tensor of logits
-  representing the likelihood of each tag at each position in some sequence
-  and a `(sequence_length,)` tensor of gold tags. (In fact, we actually provide
-  _batches_ consisting of multiple sequences, but I'm glossing over that detail.)
-- The likelihood of producing a certain tag at a certain sequence position depends on both
-  the input logits at that position and the transition parameters corresponding to the
-  tag at the previous position
-- Computing the overall likelihood requires summing across all possible tag sequences,
-  but we can use clever dynamic programming tricks to do so efficiently.
-- We also add a `viterbi_tags()` method that accepts some input logits,
-  gets the transition probabilities, and uses the
-  [Viterbi algorithm](https://en.wikipedia.org/wiki/Viterbi_algorithm)
-  and the supplied constraints
-  to compute the most likely sequence of tags for a given input.
+  _batches由多个序列组成，但我正在掩盖这些细节。)
+
+- 在某个序列位置生成某个标签的概率取决于该位置的输入逻辑和对应于在上一个位置标记。
+  
+- 计算总体概率需要对所有可能的标记序列求和，但是我们可以使用聪明的动态编程技巧来有效地做到这一点。
+- 我们也添加了一个`viterbi_tags()` 方法允许一些输入概率获取转移概率矩阵并使用[Viterbi algorithm](https://en.wikipedia.org/wiki/Viterbi_algorithm)以及提供的约束条件为给定的输入计算最可能的标记序列。
 
 ## Implementing the CRF Tagger Model
 
-The `CrfTagger` is quite similar to the `SimpleTagger` model,
-so we can take that as a starting point. We need to make the following changes:
+`crftagger`与`simpletagger`模型非常相似，所以我们可以把它作为一个起点。我们需要做以下更改：
 
-- give our model a `crf` attribute containing an appropriately initialized
-  `ConditionalRandomField` module
-- replace the softmax class probabilities with the Viterbi-generated most likely tags
-- replace the softmax + cross-entropy loss function
-  with the negative of the CRF log-likelihood
+- 给我们的模型一个包含`CRF`的`conditionalRandomField`模块。
+- 用`Viterbi-generated`最有可能的标签替换softmax概率。
+- 使用负CRF对数概率替换softmax和交叉熵。
 
-We can then register the new model as `"crf_tagger"`.
+我们用`"crf_tagger"`注册新模型。
 
 ## Creating a Dataset Reader
 
