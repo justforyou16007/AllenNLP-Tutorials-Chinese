@@ -2,7 +2,16 @@
 
 ### 如果你刚开始，请查看[the tutorial on our website](https://allennlp.org/tutorials). 我们设计了简单明了的教程。
 
-这个教程基于AllenNLP version 0.8.4。如果你想查看低版本的教程请查看：https://github.com/allenai/allennlp/tree/v0.8.3/tutorials.
+这个教程基于AllenNLP version 0.8.4。
+
+如果你想查看低版本的教程请查看：https://github.com/allenai/allennlp/tree/v0.8.3/tutorials.
+
+如果您想要查看低版本的文档，可以自己构建：
+
+```bash
+$ git clone https://github.com/allenai/allennlp.git
+$ cd doc; make html-strict
+```
 
 我们的2018 EMNLP教程在：https://github.com/allenai/writing-code-for-nlp-research-emnlp2018.
 
