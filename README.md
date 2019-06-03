@@ -26,9 +26,9 @@ $ ModuleNotFoundError: No module named 'sphinx_rtd_theme'
 pip install sphinx-rtd-theme
 ```
 
+接下来进入`allennlp/doc/_build`目录即是文档所在位置。
 
-
-我们的2018 EMNLP教程在：https://github.com/allenai/writing-code-for-nlp-research-emnlp2018.
+我们的2018 EMNLP教程在：https://github.com/allenai/writing-code-for-nlp-research-emnlp2018。
 
 ## 开始
 
