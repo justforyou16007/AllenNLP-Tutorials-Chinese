@@ -10,8 +10,23 @@
 
 ```bash
 $ git clone https://github.com/allenai/allennlp.git
+$ conda activate your-allennlp-lib-name
 $ cd doc; make html-strict
 ```
+
+如果出现如下错误：
+
+```bash
+$ ModuleNotFoundError: No module named 'sphinx_rtd_theme'
+```
+
+解决方法如下：
+
+```bash
+pip install sphinx-rtd-theme
+```
+
+
 
 我们的2018 EMNLP教程在：https://github.com/allenai/writing-code-for-nlp-research-emnlp2018.
 
