@@ -81,7 +81,7 @@ CRF只是我们模型的一部分，我们会以模块的方式实现它。
 
 ## Creating a Dataset Reader
 
-The [CoNLL data](https://www.clips.uantwerpen.be/conll2003/ner/) is formatted like
+[CoNLL data](https://www.clips.uantwerpen.be/conll2003/ner/)的格式如下：
 
 ```
    U.N.         NNP  I-NP  I-ORG
@@ -93,53 +93,37 @@ The [CoNLL data](https://www.clips.uantwerpen.be/conll2003/ner/) is formatted li
    .            .    O     O
 ```
 
-where each line contains a token, a part-of-speech tag, a syntactic chunk tag, and a named-entity tag.
-An empty line indicates the end of a sentence, and a line
+其中每行从左至右依次为词、语音标记、句法标记和命名体实体标记。空行表示句子结尾。
 
 ```
 -DOCSTART- -X- O O
 ```
 
-indicates the end of a document. (Our reader is concerned only with sentences
-and doesn't care about documents.)
+指示文档的结尾。（我们的读者只关心句子，不关心文档。）
 
-You can poke at the code yourself, but at a high level we use
-[`itertools.groupby`](https://docs.python.org/3/library/itertools.html#itertools.groupby)
-to chunk our input into groups of either "dividers" or "sentences".
-Then for each sentence we split each row into four columns,
-create a `TextField` for the token, and create a `SequenceLabelField`
-for the tags (which for us will be the NER tags).
+我们使用[`itertools.groupby`](https://docs.python.org/3/library/itertools.html#itertools.groupby)将输入转换为包含 "dividers"和"sentences"的组，然后我们把每一行分成四列，为词创建一个 `TextField` 并为标签创建一个 `SequenceLabelField`（NER标签）。
 
 ## Creating a Config File
 
-As the `CrfTagger` model is quite similar to the `SimpleTagger` model,
-we can get away with a similar configuration file. We need to make only
-a couple of changes:
+由于 `CrfTagger` 模型与 `SimpleTagger` 模型非常相似，因此我们可以使用类似的配置文件。我们只需要
 
-- change the `model.type` to `"crf_tagger"`
-- change the `"dataset_reader.type"` to `"conll2003"odule, we just n`
-- add a `"dataset_reader.tag_label"` field with value "ner" (to indicate that the NER labels are what we're predicting)
+一些变化：
 
-We don't *need* to, but we also make a few other changes
+- 将`model.type` 改为 `"crf_tagger"`
+- 把 `"dataset_reader.type"` 改成 `"conll2003"`
+- 添加一个值为“ner”的 `"dataset_reader.tag_label"` 字段（指示ner标签是我们预测的内容）。
 
-- following [Peters, Ammar, Bhagavatula, and Power 2017](https://www.semanticscholar.org/paper/Semi-supervised-sequence-tagging-with-bidirectiona-Peters-Ammar/73e59cb556351961d1bdd4ab68cbbefc5662a9fc), we use a
-  Gated Recurrent Unit (GRU) character encoder
-  as well as a GRU for our phrase encoder
-- we also start with pretrained [GloVe vectors](https://nlp.stanford.edu/projects/glove/) for our token embeddings
-- we add a regularizer that applies a L2 penalty just to the `transitions`
-  parameters to help avoid overfitting
-- we add a `test_data_path` and set `evaluate_on_test` to true.
-  This is mostly to ensure that our token embedding layer loads the GloVe
-  vectors corresponding to tokens in the test data set, so that they are not
-  treated as out-of-vocabulary at evaluation time. The second flag just evaluates
-  the model on the test set when training stops. Use this flag cautiously,
-  when you're doing real science you don't want to evaluate on your test set too often.
+即便我们不需要，但我们也做了一些其他的改变：
+
+- 根据[Peters, Ammar, Bhagavatula, and Power 2017](https://www.semanticscholar.org/paper/Semi-supervised-sequence-tagging-with-bidirectiona-Peters-Ammar/73e59cb556351961d1bdd4ab68cbbefc5662a9fc)，我们使用了对短语编码的GRU字符编码
+- 我们使用预训练模型[GloVe vectors](https://nlp.stanford.edu/projects/glove/)对我们的词向量化
+- 我们添加了一个正则化器，“l2”惩罚应用于`transitions`帮助避免参数过拟合
+  
+- 我们添加了`test_data_path`和一组 `evaluate_on_test` 设置为`True`。这是为了确认我们的词向量层加载了对应了测试数据集中词的GloVe模型，第一个是为了测试模型，第二个是为了评估我们的模型。谨慎使用这个标志，当你做真正的科学研究时，你不想太频繁地在测试集上评估。
 
 ## Putting It All Together
 
-At this point we're ready to train the model.
-In this case our new classes are part of the `allennlp` library,
-which means we can just use `allennlp train`:
+现在我们已经准备好训练这个模型了。在这种情况下我们的新类是 `allennlp`库的一部分，即我们可以用`allennlp train`来训练模型：
 
 ```bash
 $ allennlp train \
@@ -147,17 +131,13 @@ $ allennlp train \
     -s /tmp/crf_model
 ```
 
-If you were to create your own model outside of the allennlp codebase,
-you would need to load the modules where you've defined your classes.
-Otherwise they never get registered and then AllenNLP is unable to
-instantiate them based on the configuration file.
+如果要在Allennlp代码库之外创建自己的模型，您需要在定义类的地方注册模块。否则，它们永远不会注册，然后Allennlp无法根据配置文件调用它们。
 
-You can specify one or more extra packages using the
-`--include-packages` flag. For example, imagine that
-your model is in the module `myallennlp.model`
-and your dataset reader is in the module `myallennlp.dataset_reader`.
+可以使用`--include-packages`标志指定一个或多个额外的包。
 
-Then you would just
+例如，假设您的模型在模块`myallennlp.model`中，而您的数据集读取器在模块`myallennlp.dataset_reader`中。
+
+接下来我们只需要：
 
 ```bash
 $ allennlp train \
@@ -166,6 +146,4 @@ $ allennlp train \
     --include-package myallennlp
 ```
 
-and (as long as your package is somewhere on the PATH
-where Python looks for packages), your custom classes
-will all get registered and used correctly.
+而且（只要您的包位于python查找包的路径上），您的自定义类都将被正确注册和使用。
